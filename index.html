@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Plan Agenda Bulanan & Tahunan</title>
+    <title>Sistem Plan Agenda & Capaian Terpadu</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- Alpine.js untuk Interaktivitas -->
@@ -20,19 +20,23 @@
     <header class="bg-red-600 text-white shadow-md">
         <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-2">
             <div>
-                <h1 class="text-xl font-bold tracking-wide">Aplikasi Plan Agenda</h1>
-                <p class="text-xs text-red-100">Manajemen Agenda Bulanan & Tahunan Terpadu</p>
+                <h1 class="text-xl font-bold tracking-wide">Aplikasi Plan Agenda & Capaian</h1>
+                <p class="text-xs text-red-100">Sinkronisasi Database Cloud Google Sheets</p>
             </div>
-            <template x-if="isLoggedIn">
-                <div class="flex items-center gap-3 bg-red-700/60 px-3 py-1.5 rounded-lg text-sm">
-                    <div>
-                        <span class="font-semibold" x-text="user.nama"></span> 
-                        <span class="text-red-200 text-xs" x-text="user.jabatan ? '(' + user.jabatan + ')' : '(Tanpa Jabatan)'"></span>
-                        <span class="text-xs text-red-200 block" x-show="user.penempatan" x-text="'Penempatan: ' + user.penempatan"></span>
+            <div class="flex items-center gap-3">
+                <!-- Status Sinkronisasi -->
+                <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="isSyncing ? 'bg-yellow-500 text-white' : 'bg-red-700 text-red-100'" x-text="syncStatusText"></span>
+                
+                <template x-if="isLoggedIn">
+                    <div class="flex items-center gap-2 bg-red-700/80 px-3 py-1.5 rounded-lg text-sm">
+                        <div>
+                            <span class="font-semibold" x-text="user.nama"></span> 
+                            <span class="text-red-200 text-xs" x-text="user.jabatan ? '(' + user.jabatan + ')' : '(Tanpa Jabatan)'"></span>
+                        </div>
+                        <button @click="logout" class="bg-white text-red-600 px-2 py-1 rounded text-xs font-medium hover:bg-red-50 transition cursor-pointer">Ganti</button>
                     </div>
-                    <button @click="logout" class="bg-white text-red-600 px-2 py-1 rounded text-xs font-medium hover:bg-red-50 transition cursor-pointer">Ganti User</button>
-                </div>
-            </template>
+                </template>
+            </div>
         </div>
     </header>
 
@@ -45,7 +49,7 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                 </div>
                 <h2 class="text-lg font-bold text-gray-900">Identitas Pengguna</h2>
-                <p class="text-xs text-gray-500">Masukkan data diri Anda untuk memulai penginputan agenda</p>
+                <p class="text-xs text-gray-500">Masukkan data diri untuk mulai merencanakan & mencatat capaian</p>
             </div>
 
             <form @submit.prevent="login" class="space-y-4">
@@ -55,30 +59,29 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Jabatan <span class="text-gray-400 font-normal">(Opsional / Boleh Kosong)</span></label>
-                    <input type="text" x-model.trim="formUser.jabatan" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:outline-none" placeholder="Contoh: Supervisor / Staf (Kosongkan jika tidak ada)">
+                    <input type="text" x-model.trim="formUser.jabatan" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:outline-none" placeholder="Contoh: Supervisor (Kosongkan jika tidak ada)">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Penempatan <span class="text-gray-400 font-normal">(Opsional)</span></label>
                     <input type="text" x-model.trim="formUser.penempatan" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:outline-none" placeholder="Contoh: Cabang Magetan">
                 </div>
-                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg text-sm transition cursor-pointer shadow-sm">Lanjutkan ke Input Agenda</button>
+                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg text-sm transition cursor-pointer shadow-sm">Lanjutkan ke Aplikasi</button>
             </form>
         </section>
 
-        <!-- KELOMPOK 2 & 3: INPUT PLAN AGENDA & LAMPIRAN BULANAN -->
+        <!-- KELOMPOK UTAMA SETELAH LOGIN -->
         <div x-show="isLoggedIn" class="space-y-6">
 
-            <!-- Form Input Agenda -->
+            <!-- Form Input Agenda & Plan -->
             <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div class="border-b border-gray-100 pb-4 mb-4 flex justify-between items-center">
                     <div>
                         <h2 class="text-base font-bold text-gray-900">Form Input Plan Agenda Bulanan</h2>
-                        <p class="text-xs text-gray-500">Pilih tahun, bulan, hari, dan ketik rencana kegiatan Anda.</p>
+                        <p class="text-xs text-gray-500">Pilih tahun (2027-2028), bulan, tanggal, lalu masukkan rencana kegiatan.</p>
                     </div>
                 </div>
 
                 <form @submit.prevent="addAgenda" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                    <!-- Pilihan Tahun (2027 - 2028) -->
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Tahun</label>
                         <select x-model="formAgenda.tahun" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:outline-none bg-white">
@@ -87,7 +90,6 @@
                         </select>
                     </div>
 
-                    <!-- Pilihan Bulan -->
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Bulan</label>
                         <select x-model="formAgenda.bulan" @change="updateMaxDays" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:outline-none bg-white">
@@ -97,7 +99,6 @@
                         </select>
                     </div>
 
-                    <!-- Pilihan Hari sesuai Tanggal Bulan Tersebut -->
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Tanggal / Hari</label>
                         <select x-model="formAgenda.hari" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:outline-none bg-white">
@@ -107,26 +108,24 @@
                         </select>
                     </div>
 
-                    <!-- Input Rencana Kegiatan (Plan) -->
                     <div class="md:col-span-3">
                         <label class="block text-xs font-semibold uppercase tracking-wider text-gray-600 mb-1">Plan Agenda / Kegiatan</label>
-                        <input type="text" x-model.trim="formAgenda.plan" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:outline-none" placeholder="Misal: Evaluasi stok bahan baku & meeting cabang">
+                        <input type="text" x-model.trim="formAgenda.plan" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:outline-none" placeholder="Misal: Audit inventori gudang & rekap laporan">
                     </div>
 
                     <div>
-                        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg text-sm transition cursor-pointer shadow-sm">Simpan Plan</button>
+                        <button type="submit" :disabled="isSyncing" class="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg text-sm transition cursor-pointer shadow-sm">Simpan Plan</button>
                     </div>
                 </form>
             </section>
 
-            <!-- Lampiran Plan Bulan & Tahun yang Dipilih -->
+            <!-- Lampiran Plan Bulanan + List Capaian (Checklist Status) -->
             <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-4 mb-4 gap-2">
                     <div>
-                        <h2 class="text-base font-bold text-gray-900">Lampiran Plan Agenda Bulanan</h2>
-                        <p class="text-xs text-gray-500">Menampilkan daftar plan berdasarkan filter bulan & tahun di bawah.</p>
+                        <h2 class="text-base font-bold text-gray-900">Lampiran Plan & Checklist Capaian Bulanan</h2>
+                        <p class="text-xs text-gray-500">Tandai centang pada plan yang sudah tercapai/selesai dilaksanakan.</p>
                     </div>
-                    <!-- Filter Lampiran -->
                     <div class="flex gap-2 w-full sm:w-auto">
                         <select x-model="filterBulan" class="px-3 py-1.5 border border-gray-300 rounded-lg text-xs bg-white">
                             <template x-for="(bName, bIdx) in daftarBulan" :key="bIdx">
@@ -140,22 +139,35 @@
                     </div>
                 </div>
 
-                <!-- Tabel Lampiran Bulan -->
+                <!-- Tabel Lampiran dengan Status Capaian -->
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-gray-100 text-gray-600 text-xs uppercase tracking-wider">
-                                <th class="p-3 rounded-l-lg">Tanggal</th>
+                                <th class="p-3 rounded-l-lg w-16 text-center">Capaian</th>
+                                <th class="p-3">Tanggal</th>
                                 <th class="p-3">Plan Kegiatan</th>
-                                <th class="p-3">Oleh</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3">Pembuat</th>
                                 <th class="p-3 text-right rounded-r-lg">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-sm">
                             <template x-for="item in filteredMonthlyAgendas" :key="item.id">
-                                <tr class="hover:bg-gray-50 transition">
+                                <tr class="hover:bg-gray-50 transition" :class="item.status === 'Tercapai' ? 'bg-green-50/40' : ''">
+                                    <td class="p-3 text-center">
+                                        <input type="checkbox" 
+                                               :checked="item.status === 'Tercapai'" 
+                                               @change="toggleCapaian(item.id)" 
+                                               class="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500 cursor-pointer">
+                                    </td>
                                     <td class="p-3 font-medium whitespace-nowrap text-red-600" x-text="'Tgl ' + item.hari"></td>
-                                    <td class="p-3 text-gray-800" x-text="item.plan"></td>
+                                    <td class="p-3 text-gray-800" :class="item.status === 'Tercapai' ? 'line-through text-gray-400' : ''" x-text="item.plan"></td>
+                                    <td class="p-3 whitespace-nowrap">
+                                        <span class="px-2 py-1 text-xs rounded-full font-medium" 
+                                              :class="item.status === 'Tercapai' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'" 
+                                              x-text="item.status || 'Belum Tercapai'"></span>
+                                    </td>
                                     <td class="p-3 text-xs text-gray-500">
                                         <span x-text="item.nama"></span> 
                                         <span class="text-gray-400" x-show="item.jabatan" x-text="'(' + item.jabatan + ')'"></span>
@@ -167,7 +179,7 @@
                             </template>
                             <template x-if="filteredMonthlyAgendas.length === 0">
                                 <tr>
-                                    <td colspan="4" class="p-6 text-center text-gray-400 text-xs">Belum ada plan agenda yang diinput untuk bulan <span x-text="daftarBulan[filterBulan]"></span> <span x-text="filterTahun"></span>.</td>
+                                    <td colspan="6" class="p-6 text-center text-gray-400 text-xs">Belum ada plan agenda untuk bulan <span x-text="daftarBulan[filterBulan]"></span> <span x-text="filterTahun"></span>.</td>
                                 </tr>
                             </template>
                         </tbody>
@@ -175,14 +187,19 @@
                 </div>
             </section>
 
-            <!-- KELOMPOK 4: CEK PLAN TAHUNAN & KESELURUHAN -->
+            <!-- Cek Plan Tahunan & Keseluruhan -->
             <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div class="border-b border-gray-100 pb-4 mb-4">
-                    <h2 class="text-base font-bold text-gray-900">Cek Plan Tahunan & Keseluruhan</h2>
-                    <p class="text-xs text-gray-500">Pilih tahun untuk melihat rangkuman plan per bulan atau tinjau seluruh agenda.</p>
+                <div class="border-b border-gray-100 pb-4 mb-4 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-base font-bold text-gray-900">Cek Plan Tahunan & Capaian Keseluruhan</h2>
+                        <p class="text-xs text-gray-500">Rangkuman plan & progres capaian per bulan dalam setahun.</p>
+                    </div>
+                    <button @click="fetchDataFromCloud" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        Sinkronisasi Ulang Data
+                    </button>
                 </div>
 
-                <!-- Pilihan Tahun untuk Cek Plan Tahunan -->
                 <div class="flex items-center gap-3 mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
                     <label class="text-xs font-semibold uppercase tracking-wider text-gray-600">Pilih Tahun Tinjauan:</label>
                     <select x-model="cekTahun" class="px-3 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium">
@@ -191,7 +208,6 @@
                     </select>
                 </div>
 
-                <!-- Grid Per Bulan dalam Setahun -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
                     <template x-for="(bName, bIdx) in daftarBulan" :key="bIdx">
                         <div class="border border-gray-200 rounded-lg p-4 bg-white shadow-xs hover:border-red-300 transition flex flex-col justify-between">
@@ -202,9 +218,12 @@
                                 </div>
                                 <ul class="space-y-1.5 mb-3 max-h-32 overflow-y-auto text-xs pr-1">
                                     <template x-for="ag in getAgendasByMonthYear(bIdx, cekTahun)" :key="ag.id">
-                                        <li class="bg-gray-50 p-1.5 rounded border border-gray-100">
-                                            <span class="font-semibold text-red-600" x-text="'Tgl ' + ag.hari + ':'"></span>
-                                            <span x-text="ag.plan" class="text-gray-700"></span>
+                                        <li class="bg-gray-50 p-1.5 rounded border border-gray-100 flex justify-between items-center">
+                                            <div>
+                                                <span class="font-semibold text-red-600" x-text="'Tgl ' + ag.hari + ':'"></span>
+                                                <span x-text="ag.plan" class="text-gray-700" :class="ag.status === 'Tercapai' ? 'line-through text-gray-400' : ''"></span>
+                                            </div>
+                                            <span class="text-[10px] px-1.5 py-0.5 rounded ml-1" :class="ag.status === 'Tercapai' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'" x-text="ag.status === 'Tercapai' ? '✓' : '•'"></span>
                                         </li>
                                     </template>
                                     <template x-if="getAgendasByMonthYear(bIdx, cekTahun).length === 0">
@@ -212,54 +231,20 @@
                                     </template>
                                 </ul>
                             </div>
-                            <!-- Tombol pintas untuk langsung melihat bulan tersebut di lampiran atas -->
                             <button @click="jumpToMonth(bIdx, cekTahun)" class="w-full bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-700 text-xs py-1.5 rounded font-medium transition cursor-pointer">Kelola Bulan Ini</button>
                         </div>
                     </template>
-                </div>
-
-                <!-- Tinjauan Keseluruhan Data (Semua Tahun & Bulan) -->
-                <div class="border-t border-gray-100 pt-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-sm text-gray-900">Rekapitulasi Seluruh Plan Agenda Tersimpan</h3>
-                        <span class="text-xs text-gray-500 font-medium" x-text="'Total Keseluruhan: ' + allAgendas.length + ' Plan'"></span>
-                    </div>
-                    
-                    <div class="overflow-x-auto max-h-64">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-100 text-gray-600 text-xs uppercase tracking-wider sticky top-0">
-                                    <th class="p-2.5 rounded-l-lg">Waktu</th>
-                                    <th class="p-2.5">Tanggal</th>
-                                    <th class="p-2.5">Plan Kegiatan</th>
-                                    <th class="p-2.5 rounded-r-lg">Pembuat</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100 text-xs">
-                                <template x-for="item in allAgendas" :key="item.id">
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="p-2.5 font-medium whitespace-nowrap text-gray-700" x-text="daftarBulan[item.bulan] + ' ' + item.tahun"></td>
-                                        <td class="p-2.5 font-medium text-red-600" x-text="'Tgl ' + item.hari"></td>
-                                        <td class="p-2.5 text-gray-800" x-text="item.plan"></td>
-                                        <td class="p-2.5 text-gray-500" x-text="item.nama"></td>
-                                    </tr>
-                                </template>
-                                <template x-if="allAgendas.length === 0">
-                                    <tr>
-                                        <td colspan="4" class="p-6 text-center text-gray-400">Belum ada data sama sekali dalam sistem.</td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
-                    </div>
                 </div>
             </section>
 
         </div>
     </main>
 
-    <!-- Script Logika Alpine.js -->
+    <!-- Script Logika Aplikasi & Integrasi API Google Sheets -->
     <script>
+        // URL Web App Google Apps Script Anda yang terintegrasi penuh
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzClswrk8HAfBGwJbaRYaJCislAgPEL9qTQyc8c8saCHYOTCv4z-yS2NvUEJezz1yzn9A/exec';
+
         function agendaApp() {
             return {
                 daftarBulan: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
@@ -267,12 +252,7 @@
                 user: { nama: '', jabatan: '', penempatan: '' },
                 formUser: { nama: '', jabatan: '', penempatan: '' },
                 
-                formAgenda: {
-                    tahun: '2027',
-                    bulan: 0,
-                    hari: 1,
-                    plan: ''
-                },
+                formAgenda: { tahun: '2027', bulan: 0, hari: 1, plan: '' },
                 maxDays: 31,
                 
                 filterBulan: 0,
@@ -280,21 +260,17 @@
                 cekTahun: '2027',
                 
                 allAgendas: [],
+                isSyncing: false,
+                syncStatusText: 'Tersinkronisasi Cloud',
 
                 init() {
-                    // Muat data dari localStorage jika ada
                     const savedUser = localStorage.getItem('agenda_user');
                     if (savedUser) {
                         this.user = JSON.parse(savedUser);
                         this.isLoggedIn = true;
                     }
-                    
-                    const savedAgendas = localStorage.getItem('agenda_data');
-                    if (savedAgendas) {
-                        this.allAgendas = JSON.parse(savedAgendas);
-                    }
-                    
                     this.updateMaxDays();
+                    this.fetchDataFromCloud();
                 },
 
                 login() {
@@ -311,53 +287,108 @@
                 },
 
                 updateMaxDays() {
-                    // Menentukan jumlah hari maksimal berdasarkan bulan yang dipilih (tahun kabisat dihandle umum 28-31)
                     const month = parseInt(this.formAgenda.bulan);
                     const year = parseInt(this.formAgenda.tahun);
-                    
-                    // Jumlah hari dalam bulan: 0=Jan(31), 1=Feb(28/29), dst.
                     const daysInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
                     if (month === 1 && ((year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0))) {
                         this.maxDays = 29;
                     } else {
                         this.maxDays = daysInMonths[month];
                     }
-                    
-                    if (this.formAgenda.hari > this.maxDays) {
-                        this.formAgenda.hari = 1;
+                    if (this.formAgenda.hari > this.maxDays) this.formAgenda.hari = 1;
+                },
+
+                async fetchDataFromCloud() {
+                    this.isSyncing = true;
+                    this.syncStatusText = 'Menghubungkan ke Google Sheets...';
+
+                    try {
+                        let response = await fetch(SCRIPT_URL);
+                        let data = await response.json();
+                        if (Array.isArray(data)) {
+                            this.allAgendas = data.map(item => ({
+                                id: Number(item.id),
+                                nama: item.nama,
+                                jabatan: item.jabatan || '',
+                                penempatan: item.penempatan || '',
+                                tahun: String(item.tahun),
+                                bulan: Number(item.bulan),
+                                hari: Number(item.hari),
+                                plan: item.plan,
+                                status: item.status || 'Belum Tercapai'
+                            })).sort((a, b) => b.id - a.id);
+                        }
+                        this.syncStatusText = 'Tersinkronisasi Cloud ✓';
+                    } catch (e) {
+                        console.error(e);
+                        this.syncStatusText = 'Gagal Sinkron ke Cloud';
+                    } finally {
+                        this.isSyncing = false;
                     }
                 },
 
-                addAgenda() {
+                async sendToCloud(payload) {
+                    this.isSyncing = true;
+                    this.syncStatusText = 'Menyimpan ke Google Sheets...';
+
+                    try {
+                        await fetch(SCRIPT_URL, {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        this.syncStatusText = 'Tersimpan ke Cloud ✓';
+                    } catch (e) {
+                        console.error(e);
+                        this.syncStatusText = 'Gagal Simpan Cloud';
+                    } finally {
+                        this.isSyncing = false;
+                    }
+                },
+
+                async addAgenda() {
                     if (!this.formAgenda.plan) return;
 
                     const newEntry = {
+                        action: 'save',
                         id: Date.now(),
                         nama: this.user.nama,
-                        jabatan: this.user.jabatan,
-                        penempatan: this.user.penempatan,
+                        jabatan: this.user.jabatan || '',
+                        penempatan: this.user.penempatan || '',
                         tahun: this.formAgenda.tahun,
                         bulan: parseInt(this.formAgenda.bulan),
                         hari: parseInt(this.formAgenda.hari),
-                        plan: this.formAgenda.plan
+                        plan: this.formAgenda.plan,
+                        status: 'Belum Tercapai'
                     };
 
                     this.allAgendas.unshift(newEntry);
-                    this.saveToLocalStorage();
-
-                    // Reset form plan teks saja agar mudah input berikutnya
                     this.formAgenda.plan = '';
+                    
+                    await this.sendToCloud(newEntry);
                 },
 
-                deleteAgenda(id) {
-                    if (confirm('Yakin ingin menghapus plan agenda ini?')) {
-                        this.allAgendas = this.allAgendas.filter(item => item.id !== id);
-                        this.saveToLocalStorage();
+                async toggleCapaian(id) {
+                    const item = this.allAgendas.find(a => a.id === id);
+                    if (item) {
+                        item.status = item.status === 'Tercapai' ? 'Belum Tercapai' : 'Tercapai';
+                        await this.sendToCloud({
+                            action: 'update_status',
+                            id: id,
+                            status: item.status
+                        });
                     }
                 },
 
-                saveToLocalStorage() {
-                    localStorage.setItem('agenda_data', JSON.stringify(this.allAgendas));
+                async deleteAgenda(id) {
+                    if (confirm('Yakin ingin menghapus plan agenda ini dari database?')) {
+                        this.allAgendas = this.allAgendas.filter(item => item.id !== id);
+                        await this.sendToCloud({
+                            action: 'delete',
+                            id: id
+                        });
+                    }
                 },
 
                 get filteredMonthlyAgendas() {
@@ -379,8 +410,7 @@
                 jumpToMonth(bulanIdx, tahun) {
                     this.filterBulan = bulanIdx;
                     this.filterTahun = tahun;
-                    // Scroll otomatis ke bagian lampiran
-                    window.scrollTo({ top: 400, behavior: 'smooth' });
+                    window.scrollTo({ top: 350, behavior: 'smooth' });
                 }
             }
         }
